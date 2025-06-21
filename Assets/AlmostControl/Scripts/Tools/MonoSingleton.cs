@@ -7,7 +7,7 @@ namespace AlmostControl.Tools
         public static T Instance => _instance as T;
         private static MonoSingleton<T> _instance;
 
-        protected virtual void Awake()
+        private void Awake()
         {
             if (_instance == null)
             {

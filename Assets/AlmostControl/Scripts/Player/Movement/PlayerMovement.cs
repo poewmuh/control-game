@@ -20,7 +20,7 @@ namespace AlmostControl.Player.Movement
         private RaycastHit2D _headHit;
         private bool _isFacingRight = true;
 
-        private void Awake()
+        private void Start()
         {
             _collisionChecker = new CollisionChecker(_movementData, _groundCollider, _bodyCollider);
             _jumpHandler = new JumpHandler(_movementData, _collisionChecker, _rb);
