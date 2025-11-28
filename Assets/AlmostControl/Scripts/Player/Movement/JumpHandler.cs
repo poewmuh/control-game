@@ -1,4 +1,5 @@
-﻿using AlmostControl.Data;
+﻿using System;
+using AlmostControl.Data;
 using AlmostControl.InputSystem;
 using UnityEngine;
 
@@ -6,14 +7,9 @@ namespace AlmostControl.Player.Movement
 {
     public class JumpHandler
     {
-        private enum JumpState
-        {
-            Grounded,
-            Jumping,
-            Falling,
-            FastFalling
-        }
+        public event Action<JumpState> OnJumpStateChange;
         
+        private readonly PlayerInputService _inputService;
         private readonly CollisionChecker _collisionChecker;
         private readonly MovementData _data;
         private readonly Rigidbody2D _rb;
@@ -32,20 +28,21 @@ namespace AlmostControl.Player.Movement
 
         private bool _jumpReleasedDuringBuffer;
         
-        public JumpHandler(MovementData data, CollisionChecker collisionChecker, Rigidbody2D rb)
+        public JumpHandler(PlayerInputService inputService, MovementData data, CollisionChecker collisionChecker, Rigidbody2D rb)
         {
+            _inputService = inputService;
             _data = data;
             _collisionChecker = collisionChecker;
             _rb = rb;
 
-            PlayerInputSystem.Instance.OnPressJump += OnPressJump;
-            PlayerInputSystem.Instance.OnReleaseJump += OnReleaseJump;
+            _inputService.OnPressJump += OnPressJump;
+            _inputService.OnReleaseJump += OnReleaseJump;
         }
 
         ~JumpHandler()
         {
-            PlayerInputSystem.Instance.OnPressJump -= OnPressJump;
-            PlayerInputSystem.Instance.OnReleaseJump -= OnReleaseJump;
+            _inputService.OnPressJump -= OnPressJump;
+            _inputService.OnReleaseJump -= OnReleaseJump;
         }
         
         public void FixedTick()
@@ -96,7 +93,7 @@ namespace AlmostControl.Player.Movement
         {
             if (!_collisionChecker.isGrounded && _state == JumpState.Grounded)
             {
-                _state = JumpState.Falling;
+                SetNewJumpState(JumpState.Falling);
             }
         }
         
@@ -127,7 +124,7 @@ namespace AlmostControl.Player.Movement
             else
             {
                 _verticalVelocity += _data.gravity * _data.gravityOnReleaseMultiplier * Time.fixedDeltaTime;
-                _state = JumpState.Falling;
+                SetNewJumpState(JumpState.Falling);
             }
         }
 
@@ -146,7 +143,7 @@ namespace AlmostControl.Player.Movement
 
             if (_verticalVelocity < 0 && _state != JumpState.Falling)
             {
-                _state = JumpState.Falling;
+                SetNewJumpState(JumpState.Falling);
             }
         }
 
@@ -174,7 +171,7 @@ namespace AlmostControl.Player.Movement
         
         private void StartFastFall()
         {
-            _state = JumpState.FastFalling;
+            SetNewJumpState(JumpState.FastFalling);
             _fastFallTimer = 0f;
             _fastFallReleaseSpeed = _verticalVelocity;
         }
@@ -184,7 +181,7 @@ namespace AlmostControl.Player.Movement
             if (_collisionChecker.isGrounded && _verticalVelocity <= 0 &&
                 _state is JumpState.Jumping or JumpState.Falling or JumpState.FastFalling)
             {
-                _state = JumpState.Grounded;
+                SetNewJumpState(JumpState.Grounded);
                 _verticalVelocity = Physics2D.gravity.y;
                 _jumpUsedCount = 0;
                 _fastFallTimer = 0f;
@@ -200,7 +197,7 @@ namespace AlmostControl.Player.Movement
 
         private void StartJump(int jumpUsing)
         {
-            _state = JumpState.Jumping;
+            SetNewJumpState(JumpState.Jumping);
             _jumpBufferTimer = 0f;
             _jumpUsedCount += jumpUsing;
             _verticalVelocity = _data.initialJumpVelocity;
@@ -232,6 +229,14 @@ namespace AlmostControl.Player.Movement
             {
                 _coyoteTimer = _data.jumpCoyoteTime;
             }
+        }
+
+        private void SetNewJumpState(JumpState newState)
+        {
+            if (newState == _state) return;
+            
+            _state = newState;
+            OnJumpStateChange?.Invoke(_state);
         }
     }
 }

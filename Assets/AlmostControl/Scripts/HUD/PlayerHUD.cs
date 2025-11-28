@@ -1,14 +1,15 @@
-using System;
 using AlmostControl.Game;
 using TMPro;
 using UnityEngine;
+using VContainer;
 
 namespace AlmostControl.HUD
 {
     public class PlayerHUD : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _levelText;
-        [SerializeField] private TextMeshProUGUI _hintText;
+        
+        [Inject] private LevelsManager _levelsManager;
 
         private void Start()
         {
@@ -17,47 +18,20 @@ namespace AlmostControl.HUD
 
         private void Init()
         {
-            var levelsManager = LevelsManager.Instance;
-            ChangeLevelText(levelsManager.CurrentLevel, levelsManager.MaxLevels);
-            levelsManager.OnLevelChange += OnLevelChange;
-            levelsManager.OnLevelsEnd += OnLevelsEnd;
+            ChangeLevelText(_levelsManager.CurrentLevel, _levelsManager.MaxLevels);
+            _levelsManager.OnLevelChange += OnLevelChange;
+            _levelsManager.OnGameComplete += OnGameComplete;
         }
 
         private void OnLevelChange(int newLevel)
         {
-            ChangeLevelText(newLevel, LevelsManager.Instance.MaxLevels);
-
-            switch (newLevel)
-            {
-                case 0:
-                    ShowHintText("Use SPACE for JUMP");
-                    break;
-                case 1:
-                    ShowHintText("Use SPACE in AIR for DOUBLE JUMP");
-                    break;
-                default: HideHintText(); 
-                    break;
-            }
+            ChangeLevelText(newLevel, _levelsManager.MaxLevels);
         }
 
-        private void OnLevelsEnd()
+        private void OnGameComplete()
         {
-            var levelsManager = LevelsManager.Instance;
-            levelsManager.OnLevelChange -= OnLevelChange;
-            levelsManager.OnLevelsEnd -= OnLevelsEnd;
-
-            ShowHintText("CONGRATULATION YOU? WIN!");
-        }
-
-        private void ShowHintText(string text)
-        {
-            _hintText.enabled = true;
-            _hintText.text = text;
-        }
-        
-        private void HideHintText()
-        {
-            _hintText.enabled = false;
+            _levelsManager.OnLevelChange -= OnLevelChange;
+            _levelsManager.OnGameComplete -= OnGameComplete;
         }
 
         private void ChangeLevelText(int currentLevel, int maxLevel)

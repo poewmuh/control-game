@@ -1,22 +1,28 @@
 using System;
-using AlmostControl.Tools;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace AlmostControl.Game
 {
-    public class LevelsManager : MonoSingleton<LevelsManager>
+    public class LevelsManager : IInitializable, IDisposable
     {
-        public event Action OnLevelsEnd;
+        public event Action OnGameComplete;
         public event Action<int> OnLevelChange;
         
-        [SerializeField] private GameObject[] _levels;
+        [Inject] private GameObject[] _levels;
 
         public int MaxLevels => _levels.Length;
         public int CurrentLevel => _currentLevel;
 
         private int _currentLevel = 0;
+
+        public LevelsManager(GameObject[] levels)
+        {
+            _levels = levels;
+        }
         
-        protected override void Init()
+        public void Initialize()
         {
             ActivateLevel(_currentLevel);
         }
@@ -25,7 +31,7 @@ namespace AlmostControl.Game
         {
             if (_currentLevel + 1 >= _levels.Length)
             {
-                OnLevelsEnd?.Invoke();
+                OnGameComplete?.Invoke();
                 Debug.Log("No more levels");
                 return;
             }
@@ -44,6 +50,11 @@ namespace AlmostControl.Game
         private void DeactivateLevel(int level)
         {
             _levels[level].SetActive(false);
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }
